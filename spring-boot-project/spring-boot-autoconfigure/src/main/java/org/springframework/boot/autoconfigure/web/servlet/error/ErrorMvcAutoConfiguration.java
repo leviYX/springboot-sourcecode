@@ -98,6 +98,7 @@ public class ErrorMvcAutoConfiguration {
 	}
 
 	@Bean
+	// 默认的异常处理，如果用户没有配置，就使用这个
 	@ConditionalOnMissingBean(value = ErrorAttributes.class, search = SearchStrategy.CURRENT)
 	public DefaultErrorAttributes errorAttributes() {
 		return new DefaultErrorAttributes();
@@ -111,6 +112,9 @@ public class ErrorMvcAutoConfiguration {
 				errorViewResolvers.orderedStream().collect(Collectors.toList()));
 	}
 
+	/**
+	 * 错误页的定制化器
+	 */
 	@Bean
 	public ErrorPageCustomizer errorPageCustomizer(DispatcherServletPath dispatcherServletPath) {
 		return new ErrorPageCustomizer(this.serverProperties, dispatcherServletPath);
@@ -150,14 +154,22 @@ public class ErrorMvcAutoConfiguration {
 
 		private final StaticView defaultErrorView = new StaticView();
 
+		/**
+		 * 容器中还会放置一个名字叫error的视图
+		 */
 		@Bean(name = "error")
 		@ConditionalOnMissingBean(name = "error")
 		public View defaultErrorView() {
+			// 这里面是异常处理默认的视图，点进去就发现，他返回的是静态的html页面，拼了一个异常页面，就是我们常见的那个异常页面
 			return this.defaultErrorView;
 		}
 
 		// If the user adds @EnableWebMvc then the bean name view resolver from
 		// WebMvcAutoConfiguration disappears, so add it back in to avoid disappointment.
+		// 容器中放一个视图解析器，这个视图解析器是BeanNameViewResolver，可以通过视图的名字来解析视图
+		// 这个就是和上面这个defaultErrorView配合工作的，他按照名字error查找到这个视图，然后渲染出来，返回
+		// 所以我们可以来替代这个视图，我们可以自己定义一个名字叫做error的视图，@ConditionalOnMissingBean(name = "error")
+		// 才会取defaultErrorView，我们自定义一个他就会根据name为error来取我们的，默认那个就不生效了
 		@Bean
 		@ConditionalOnMissingBean
 		public BeanNameViewResolver beanNameViewResolver() {

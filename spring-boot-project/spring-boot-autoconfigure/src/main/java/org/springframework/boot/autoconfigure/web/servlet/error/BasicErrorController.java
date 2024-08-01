@@ -53,6 +53,13 @@ import org.springframework.web.servlet.ModelAndView;
  * @see ErrorAttributes
  * @see ErrorProperties
  */
+
+/**
+ * 这是一个controller，所以这个controller和我们写的没啥区别，我们看到他的请求路径是这样的
+ *${server.error.path:${error.path:/error}} 表达式的意思是：首先尝试解析 server.error.path 属性。如果该属性未定义，
+ * 则使用 error.path 属性。如果 error.path 也未定义，则使用默认路径 /error。所以我们这里就可以知道，
+ * 他的异常处理默认请求的controller大路径是/error，当然我们也可以通过配置文件来修改这个默认的请求路径。你改了就用你的了
+ */
 @Controller
 @RequestMapping("${server.error.path:${error.path:/error}}")
 public class BasicErrorController extends AbstractErrorController {
@@ -86,16 +93,27 @@ public class BasicErrorController extends AbstractErrorController {
 		return null;
 	}
 
-	@RequestMapping(produces = MediaType.TEXT_HTML_VALUE)
+	/**
+	 * 我们看到这里是异常html的处理，所以当你请求的异常是在页面的时候produces = MediaType.TEXT_HTML_VALUE
+	 * 此时就会进入这个方法，然后返回一个ModelAndView对象，这个对象里面包含了错误信息，并且给你跳转去
+	 * 错误页面，所以这个方法就是处理异常的。浏览器请求接口的异常来这里，然后通过ModelAndView跳去异常视图
+	 */
+	@RequestMapping(produces = MediaType.TEXT_HTML_VALUE)// "text/html"
 	public ModelAndView errorHtml(HttpServletRequest request, HttpServletResponse response) {
 		HttpStatus status = getStatus(request);
 		Map<String, Object> model = Collections
 				.unmodifiableMap(getErrorAttributes(request, getErrorAttributeOptions(request, MediaType.TEXT_HTML)));
 		response.setStatus(status.value());
+		// 构建异常视图，给前端返回
 		ModelAndView modelAndView = resolveErrorView(request, response, status, model);
+		// 页面响应响应error这个页面
 		return (modelAndView != null) ? modelAndView : new ModelAndView("error", model);
 	}
 
+	/**
+	 * 非页面的响应，在这里处理，直接返回json数据，比如我们用postman测试的时候，就会进入这个方法，不是给html页面响应
+	 * ResponseEntity返回类型就是字符串类型，其实就是个json
+	 */
 	@RequestMapping
 	public ResponseEntity<Map<String, Object>> error(HttpServletRequest request) {
 		HttpStatus status = getStatus(request);

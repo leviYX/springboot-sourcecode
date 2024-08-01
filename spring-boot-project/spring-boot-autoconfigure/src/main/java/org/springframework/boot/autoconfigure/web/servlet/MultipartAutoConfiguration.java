@@ -49,13 +49,22 @@ import org.springframework.web.servlet.DispatcherServlet;
  * @author Toshiaki Maki
  * @since 2.0.0
  */
+// lite模式开启
 @Configuration(proxyBeanMethods = false)
+// 存在这几个类就生效，这都是web包下面的，你引入web这个肯定生效
 @ConditionalOnClass({ Servlet.class, StandardServletMultipartResolver.class, MultipartConfigElement.class })
+// 当存在这个配置就生效，默认是开启的enabled=true,而且即便没匹配到，也会给你设置为true生效，也就是你配不配，这个也生效，因为本身就提供上传
+// 能力，不能因为你不配，我就不解析了，这种是boot的一个规范，
 @ConditionalOnProperty(prefix = "spring.servlet.multipart", name = "enabled", matchIfMissing = true)
+// 存在这个类就生效，这个类是springboot提供的，springboot提供上传解析器，所以这个类肯定存在，这个类就是用来解析的，
 @ConditionalOnWebApplication(type = Type.SERVLET)
+// 配置文件绑定，这个EnableConfigurationProperties注解两个作用，一个是把配置文件绑定到MultipartProperties这个类上，
+// 另一个是把MultipartProperties这个类注入到容器中,所以关于文件解析的所有可配置项就已经在MultipartProperties指定了，你不配就走默认，
+// 配置了就绑定你配置的
 @EnableConfigurationProperties(MultipartProperties.class)
 public class MultipartAutoConfiguration {
 
+	// 文件配置绑定类
 	private final MultipartProperties multipartProperties;
 
 	public MultipartAutoConfiguration(MultipartProperties multipartProperties) {
@@ -68,9 +77,17 @@ public class MultipartAutoConfiguration {
 		return this.multipartProperties.createMultipartConfig();
 	}
 
+	/**
+	 * 注册一个文件解析器，名字为 DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME=multipartResolver
+	 * 当容器中没有MultipartResolver这个类的时候，才会注册这个解析器，所以我们自己写了就能覆盖这个，不过一般没必要，因为你按标准servlet
+	 * 上传就好了。他就能给你解析了，而且再解析也就是流，你还能玩出什么花来。
+	 * 而且看他这个名字StandardServletMultipartResolver，标准servlet类型的上传的文件才能被解析，你要是解析你自己定义的流那种，你得自己写了。boot管不了
+	 *
+	 */
 	@Bean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)
 	@ConditionalOnMissingBean(MultipartResolver.class)
 	public StandardServletMultipartResolver multipartResolver() {
+		// 我们看到这里其实给boot放了一个解析器进去，所以文件解析的逻辑就在StandardServletMultipartResolver里面实现
 		StandardServletMultipartResolver multipartResolver = new StandardServletMultipartResolver();
 		multipartResolver.setResolveLazily(this.multipartProperties.isResolveLazily());
 		return multipartResolver;

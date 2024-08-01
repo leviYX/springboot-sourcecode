@@ -1,15 +1,21 @@
 package smoketest.simple.controller;
 
 
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import smoketest.simple.MyNo;
 
 @RestController
 @RequestMapping("/test")
 public class MyController {
 
-	@RequestMapping("test")
+	/*@RequestMapping("test")
+	public MypO test(@MyNo(no = "sb")  MypO mypO) {
+		return mypO;
+	}*/
+
+	@GetMapping("testError")
 	public String test() {
-		return "test";
+		int i = 1 / 0;
+		return "error";
 	}
 }
