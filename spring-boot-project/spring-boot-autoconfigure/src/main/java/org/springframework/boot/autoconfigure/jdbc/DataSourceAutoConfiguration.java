@@ -50,10 +50,15 @@ import org.springframework.util.StringUtils;
  * @author Kazuki Shimizu
  * @since 1.0.0
  */
+// lite模式开启
 @Configuration(proxyBeanMethods = false)
+// 只有存在DataSource类才会生效， javax.sql包，引入JDBC驱动就会存在，所以你不引入数据库驱动没办法生效
 @ConditionalOnClass({ DataSource.class, EmbeddedDatabaseType.class })
+// 当没有r2dbc的时候才会生效，也就是你配置了响应式的数据源就不会走这个了，要走响应式的
 @ConditionalOnMissingBean(type = "io.r2dbc.spi.ConnectionFactory")
+// 属性绑定DataSourceProperties这个类和配置文件的绑定，并且会加入到容器中
 @EnableConfigurationProperties(DataSourceProperties.class)
+// 注入额外的配置，做一些初始化等等
 @Import({ DataSourcePoolMetadataProvidersConfiguration.class, DataSourceInitializationConfiguration.class })
 public class DataSourceAutoConfiguration {
 

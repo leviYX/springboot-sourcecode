@@ -89,8 +89,11 @@ public abstract class AutoConfigurationPackages {
 	 * configuration class or classes.
 	 * @param registry the bean definition registry
 	 * @param packageNames the package names to set
+	 * 把启动类所在的包以及他的子包下面的所有类都注册到容器中，注意这里是@AutoConfigurationPackage注解过来的
+	 *     registry注册器，packageNames其实就传了一个启动类所在的包名过来
 	 */
 	public static void register(BeanDefinitionRegistry registry, String... packageNames) {
+		// BEAN = org.springframework.boot.autoconfigure.AutoConfigurationPackages也就是当前这个类
 		if (registry.containsBeanDefinition(BEAN)) {
 			BeanDefinition beanDefinition = registry.getBeanDefinition(BEAN);
 			ConstructorArgumentValues constructorArguments = beanDefinition.getConstructorArgumentValues();
@@ -116,11 +119,16 @@ public abstract class AutoConfigurationPackages {
 	/**
 	 * {@link ImportBeanDefinitionRegistrar} to store the base package from the importing
 	 * configuration.
+	 * 注意这里是@AutoConfigurationPackage注解过来的，所以下面的注解信息都是他的
 	 */
 	static class Registrar implements ImportBeanDefinitionRegistrar, DeterminableImports {
 
 		@Override
 		public void registerBeanDefinitions(AnnotationMetadata metadata, BeanDefinitionRegistry registry) {
+			// 这个方法会把下面所有扫到的bean都注册到容器中，AnnotationMetadata metadata就是@EnableAutoConfiguration注解的元数据信息
+			// 传入两个参数，第一个是注册器，第二个是注解的元数据信息解读出来的包名，其实就是我们@AutoConfigurationPackage这个注解打在哪个类上
+			// 进而读到这个类的包名，其实就是我们的启动类，因为@AutoConfigurationPackage就是启动类上的注解，所以我们可以得知，这个方法其实就是把
+			// 启动类所在的包以及他的子包下面的类都注册到容器中，所以为啥只会扫你主类所在的包了，就是这里支持的
 			register(registry, new PackageImports(metadata).getPackageNames().toArray(new String[0]));
 		}
 

@@ -52,10 +52,10 @@ import org.springframework.data.repository.Repository;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
-@SpringBootConfiguration
+@SpringBootConfiguration //  就一个标识为配置类的注解，没啥好说的
 @EnableAutoConfiguration
 @ComponentScan(excludeFilters = { @Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
-		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })// 扫描的包路径配置类
 public @interface SpringBootApplication {
 
 	/**

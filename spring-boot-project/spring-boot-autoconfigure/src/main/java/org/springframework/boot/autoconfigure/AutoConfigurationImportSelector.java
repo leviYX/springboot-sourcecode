@@ -91,11 +91,19 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 
 	private ConfigurationClassFilter configurationClassFilter;
 
+	/**
+	 * 要看这个方法，因为这是实现的方法，而且命名也一眼看到了含义了，就是这里来的
+	 * 导入哪些组件就是这里获取的，AnnotationMetadata就是注解的元数据，其实就是启动类
+	 * @param annotationMetadata
+	 * @return
+	 */
 	@Override
 	public String[] selectImports(AnnotationMetadata annotationMetadata) {
+		// 开关配置，没有就直接返回空，不做导入
 		if (!isEnabled(annotationMetadata)) {
 			return NO_IMPORTS;
 		}
+		// 通过注解获取要自动装配的内容，所有的核心都落在了这里，获取所有自动装配的类的集合
 		AutoConfigurationEntry autoConfigurationEntry = getAutoConfigurationEntry(annotationMetadata);
 		return StringUtils.toStringArray(autoConfigurationEntry.getConfigurations());
 	}
@@ -120,11 +128,17 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 			return EMPTY_ENTRY;
 		}
 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
+		// 获取所有的候选的需要自动装配的组件，所以这里就是获取自动装配的地方了，自动装配的重点核心
 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
+		// 做去重
 		configurations = removeDuplicates(configurations);
+		// 做这个注解上排除的组件，EnableAutoConfiguration注解上有一个exclude属性，可以配置要排除的组件，这里就是拿到需要排除的
 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
+		// 校验你要排除的类是不是存在之类的一些东西，存在的才排除，不存在的没啥意义过滤掉，也不报错
 		checkExcludedClasses(configurations, exclusions);
+		// 过滤掉不需要的，就是过滤掉exclude属性上配置的组件
 		configurations.removeAll(exclusions);
+		// 因为是取得所有的factoris文件的，我们只要自动装配的，所以这里要做一次过滤，而且这里只过滤我们导入的，没导入的直接过滤掉
 		configurations = getConfigurationClassFilter().filter(configurations);
 		fireAutoConfigurationImportEvents(configurations, exclusions);
 		return new AutoConfigurationEntry(configurations, exclusions);
@@ -173,8 +187,18 @@ public class AutoConfigurationImportSelector implements DeferredImportSelector, 
 	 * @param attributes the {@link #getAttributes(AnnotationMetadata) annotation
 	 * attributes}
 	 * @return a list of candidate configurations
+	 * 获取需要自动装配的组件
 	 */
 	protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) {
+		/**
+		 * 加载文件通过SpringFactoriesLoader的能力，就是读取文件
+		 * 我们来解读一下这个方法，这个方法传入两个参数，第一个是EnableAutoConfiguration这个类的名字，第二个是类加载器
+		 * 其底层实现就是从我们当先系统，注意是系统，加载所有的"META-INF/spring.factories"文件，也就是读取所有的META-INF目录下的spring.factories文件
+		 * 读取文件中的内容，然后返回一个List集合，这个List集合就是我们需要的自动装配的组件，也就是EnableAutoConfiguration注解上配置的类
+		 * 这就带来一个问题，其实当前项目很多jar下面都有这个目录文件，他都会拿到，那么他都要吗，其实不是的，他会通过组件来过滤最后取到
+		 * org.springframework.boot.autoconfigure.EnableAutoConfiguration.class这个类的全限定名，然后通过SpringFactoriesLoader去过滤
+		 *
+		 */
 		List<String> configurations = SpringFactoriesLoader.loadFactoryNames(getSpringFactoriesLoaderFactoryClass(),
 				getBeanClassLoader());
 		Assert.notEmpty(configurations, "No auto configuration classes found in META-INF/spring.factories. If you "

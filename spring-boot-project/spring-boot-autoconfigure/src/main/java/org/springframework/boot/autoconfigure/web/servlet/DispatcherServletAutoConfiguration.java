@@ -96,6 +96,24 @@ public class DispatcherServletAutoConfiguration {
 			return dispatcherServlet;
 		}
 
+		/**
+		 * 这个方法比较有意思，这是上传文件的解析器，这个解析器，我们来分析它的注解生效
+		 * 1、@Bean 这是一个注册bean的注解，表示要在容器中放入一个bean，这个bean的id为multipartResolver
+		 * 2、@ConditionalOnBean(MultipartResolver.class) 这是一个条件注解，表示如果容器中存在MultipartResolver才生效，那我们引入了
+		 * web环境就肯定是生效的。
+		 * 3、@ConditionalOnMissingBean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME) 这是一个条件注解，表示如果容器中不存在
+		 * 名字为multipartResolver的bean，则生效。
+		 * 4、一个机制，就是当我们在boot中操作一个@bean的注入的时候，如果这个方法的参数是一个bean，那么boot就会去容器中获取这个bean，然后直接拿来用
+		 * 我们这个方法就是把容器中存在的MultipartResolver解析器，直接拿来用。
+		 *
+		 * 结合下来就是说当我们在boot中定义了一个名字不叫multipartResolver的MultipartResolver解析器的时候，有时候有的人可能不懂boot底层
+		 * 就瞎写了一个，但是会在这里被处理，处理的具体逻辑就是，首先你写了一个不叫这个名字的比如abc，那么此时就满足条件2，因为首先容器里有，
+		 * 只是名字不一样，其次也满足条件3，因为你名字叫abc，不叫multipartResolver，所以条件3还能继续成立，然后此时基于机制4，boot从容器中
+		 * 拿到你的这个bean，然后给你返回，这不就是你虽然乱写的，但是依然还是生效了。
+		 * 但是如果你写的就很规范，就叫multipartResolver，那这个条件3直接不满足，这里就不执行了，所以这是一种兜底，为用户的不规范擦屁股
+		 * @param resolver
+		 * @return
+		 */
 		@Bean
 		@ConditionalOnBean(MultipartResolver.class)
 		@ConditionalOnMissingBean(name = DispatcherServlet.MULTIPART_RESOLVER_BEAN_NAME)

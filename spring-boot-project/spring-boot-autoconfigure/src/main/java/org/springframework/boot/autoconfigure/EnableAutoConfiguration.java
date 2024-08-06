@@ -79,7 +79,9 @@ import org.springframework.core.io.support.SpringFactoriesLoader;
 @Retention(RetentionPolicy.RUNTIME)
 @Documented
 @Inherited
+// 这个读入你哪个包下面的类就是这个注解下面生效的
 @AutoConfigurationPackage
+// 自动注入的配置类，就是这里生效的，利用AutoConfigurationImportSelector批量导入组件
 @Import(AutoConfigurationImportSelector.class)
 public @interface EnableAutoConfiguration {
 
