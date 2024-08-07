@@ -56,7 +56,7 @@ import org.springframework.util.StringUtils;
 @ConditionalOnClass({ DataSource.class, EmbeddedDatabaseType.class })
 // 当没有r2dbc的时候才会生效，也就是你配置了响应式的数据源就不会走这个了，要走响应式的
 @ConditionalOnMissingBean(type = "io.r2dbc.spi.ConnectionFactory")
-// 属性绑定DataSourceProperties这个类和配置文件的绑定，并且会加入到容器中
+// 属性绑定DataSourceProperties这个类和配置文件的绑定，并且会把DataSourceProperties加入到容器中
 @EnableConfigurationProperties(DataSourceProperties.class)
 // 注入额外的配置，做一些初始化等等
 @Import({ DataSourcePoolMetadataProvidersConfiguration.class, DataSourceInitializationConfiguration.class })

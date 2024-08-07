@@ -97,7 +97,7 @@ public class DispatcherServletAutoConfiguration {
 		}
 
 		/**
-		 * 这个方法比较有意思，这是上传文件的解析器，这个解析器，我们来分析它的注解生效
+		 * 这个方法需要解读，这是上传文件的解析器，这个解析器，我们来分析它的注解生效，然后其他地方同理也是一样的逻辑和原理
 		 * 1、@Bean 这是一个注册bean的注解，表示要在容器中放入一个bean，这个bean的id为multipartResolver
 		 * 2、@ConditionalOnBean(MultipartResolver.class) 这是一个条件注解，表示如果容器中存在MultipartResolver才生效，那我们引入了
 		 * web环境就肯定是生效的。

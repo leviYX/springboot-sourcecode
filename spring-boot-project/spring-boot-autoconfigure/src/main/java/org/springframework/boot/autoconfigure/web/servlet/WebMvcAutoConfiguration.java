@@ -135,12 +135,19 @@ import org.springframework.web.util.UrlPathHelper;
  * @author Bruce Brouwer
  * @author Artsiom Yudovin
  * @since 2.0.0
+ * 和springmvc相关的自动配置功能
  */
+// lite模式启动
 @Configuration(proxyBeanMethods = false)
+// 当你是个web servlet的时候生效，我们目前导入的就是web，所以生效
 @ConditionalOnWebApplication(type = Type.SERVLET)
+// 当存在mvc环境时生效，下面三个类都是web的自然也就有mvc，所以生效
 @ConditionalOnClass({ Servlet.class, DispatcherServlet.class, WebMvcConfigurer.class })
+// 当不存在WebMvcConfigurationSupport的时候生效，这就是全面自定义接管mvc环境的，这里我们先不定义，所以生效
 @ConditionalOnMissingBean(WebMvcConfigurationSupport.class)
 @AutoConfigureOrder(Ordered.HIGHEST_PRECEDENCE + 10)
+// 在DispatcherServletAutoConfiguration TaskExecutionAutoConfiguration  ValidationAutoConfiguration装配之后生效，因为有依赖
+// 得先有这三个
 @AutoConfigureAfter({ DispatcherServletAutoConfiguration.class, TaskExecutionAutoConfiguration.class,
 		ValidationAutoConfiguration.class })
 public class WebMvcAutoConfiguration {
@@ -151,10 +158,33 @@ public class WebMvcAutoConfiguration {
 
 	private static final String[] SERVLET_LOCATIONS = { "/" };
 
+	/**
+	 * 这个是注册你对于restful风格请求的映射，当然默认是GET，但是你不配delete put是不能生效的，他会映射去你相同名字的get请求
+	 * 没有相同名字的get就404了  注意这个是表单提交的rest风格过滤器，你要是用postman这个不生效，因为表单只能写get post
+	 * 不能写delete 和 put，这里你要是原生的其实没事，这里只是为了兼容表单的
+	 * @return
+	 */
 	@Bean
+	// 没这个才生效这个配置，我们没自己写，所以生效
 	@ConditionalOnMissingBean(HiddenHttpMethodFilter.class)
+	// 配置文件里面没有配置spring.mvc.hiddenmethod.filter.enabled=true，所以不生效，所以我们要想生效rest风格，需要配置这个
 	@ConditionalOnProperty(prefix = "spring.mvc.hiddenmethod.filter", name = "enabled", matchIfMissing = false)
 	public OrderedHiddenHttpMethodFilter hiddenHttpMethodFilter() {
+		// 点进去看他的过滤规则
+		/**
+		 * if ("POST".equals(request.getMethod()) && request.getAttribute(WebUtils.ERROR_EXCEPTION_ATTRIBUTE) == null) {
+		 * 			String paramValue = request.getParameter(this.methodParam);
+		 * 			if (StringUtils.hasLength(paramValue)) {
+		 * 				String method = paramValue.toUpperCase(Locale.ENGLISH);
+		 * 				if (ALLOWED_METHODS.contains(method)) {
+		 * 					requestToUse = new HttpMethodRequestWrapper(request, method);
+		 * 				                }            * 			}
+		 * 		}
+		 * 	filterChain.doFilter(requestToUse, response);放行过滤器
+		 * 	这是他过滤器的实现，我们看到你的方法必须是post，并且没有异常，然后参数里面必须有一个_method参数，这个参数的值就是你的请求方法
+		 * 	也就是你的表单要写一个name="_method" value="delete"然后他会读这个_method"，ALLOWED_METHODS这个是个数组就是put get delete post
+		 * 	那些支持的rest类型的接口，这里拿到再去给你路由，过滤器给你把你原来的get请求拿到，然后给你包装成了delete请求，然后你就可以处理delete请求了
+		 */
 		return new OrderedHiddenHttpMethodFilter();
 	}
 
@@ -174,8 +204,11 @@ public class WebMvcAutoConfiguration {
 
 	// Defined as a nested config to ensure WebMvcConfigurer is not read when not
 	// on the classpath
+	// 处理mvc的配置，比如视图解析器，静态资源处理等，这里就是静态资源的配置生效类
 	@Configuration(proxyBeanMethods = false)
 	@Import(EnableWebMvcConfiguration.class)
+	// 自动注入和文件绑定的类，比如：WebMvcProperties, ResourceProperties，同时把这个绑定的类也放到容器中
+	// WebMvcProperties是mvc的配置类和配置文件的spring.mvc绑定，ResourceProperties是静态资源的配置类和配置文件的spring.resources绑定
 	@EnableConfigurationProperties({ WebMvcProperties.class, ResourceProperties.class })
 	@Order(0)
 	public static class WebMvcAutoConfigurationAdapter implements WebMvcConfigurer {
@@ -196,15 +229,17 @@ public class WebMvcAutoConfiguration {
 
 		final ResourceHandlerRegistrationCustomizer resourceHandlerRegistrationCustomizer;
 
+		// 这里说一个机制，就是当一个配置类(被@Configuration标记的类)，只有一个全参构造的时候，这个构造器里面所有的参数都会从容器中获取
 		public WebMvcAutoConfigurationAdapter(ResourceProperties resourceProperties, WebMvcProperties mvcProperties,
 				ListableBeanFactory beanFactory, ObjectProvider<HttpMessageConverters> messageConvertersProvider,
 				ObjectProvider<ResourceHandlerRegistrationCustomizer> resourceHandlerRegistrationCustomizerProvider,
 				ObjectProvider<DispatcherServletPath> dispatcherServletPath,
 				ObjectProvider<ServletRegistrationBean<?>> servletRegistrations) {
+			//  WebMvcProperties是mvc的配置类和配置文件的spring.mvc绑定，ResourceProperties是静态资源的配置类和配置文件的spring.resources绑定
 			this.resourceProperties = resourceProperties;
 			this.mvcProperties = mvcProperties;
-			this.beanFactory = beanFactory;
-			this.messageConvertersProvider = messageConvertersProvider;
+			this.beanFactory = beanFactory;// 容器工厂
+			this.messageConvertersProvider = messageConvertersProvider;// 类型属性转换
 			this.resourceHandlerRegistrationCustomizer = resourceHandlerRegistrationCustomizerProvider.getIfAvailable();
 			this.dispatcherServletPath = dispatcherServletPath;
 			this.servletRegistrations = servletRegistrations;
@@ -322,22 +357,38 @@ public class WebMvcAutoConfiguration {
 			ApplicationConversionService.addBeans(registry, this.beanFactory);
 		}
 
+		/**
+		 * 添加资源处理器，也就是静态资源处理器
+		 * @param registry
+		 */
 		@Override
 		public void addResourceHandlers(ResourceHandlerRegistry registry) {
+			// resourceProperties是配置文件中的spring.resources的绑定
+			// resourceProperties.isAddMappings() 是 spring.resources.addMappings这个配置，默认是true，表示是否可以配置资源处理
+			// 默认情况下，静态资源处理是开启的，但是也可以通过配置关闭，配置为false就直接禁用了
 			if (!this.resourceProperties.isAddMappings()) {
+				// 禁用日志
 				logger.debug("Default resource handling disabled");
+				// 禁用就直接返回，不添加资源处理器
 				return;
 			}
+			// 静态资源读取还能配置缓存的时间长度，单位是秒，前端会缓存，就不用去再读一次了，可以看到我们可以通过代码得知哪些配置有什么用，这也是看源码的意义
 			Duration cachePeriod = this.resourceProperties.getCache().getPeriod();
+			// 缓存控制，默认是null，表示不设置缓存
 			CacheControl cacheControl = this.resourceProperties.getCache().getCachecontrol().toHttpCacheControl();
+			// 如果你的maven导入了webjars，其实就是那些js他封装成了maven 的jar包导入，这里就会注册处理
 			if (!registry.hasMappingForPattern("/webjars/**")) {
 				customizeResourceHandlerRegistration(registry.addResourceHandler("/webjars/**")
-						.addResourceLocations("classpath:/META-INF/resources/webjars/")
-						.setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));
+						.addResourceLocations("classpath:/META-INF/resources/webjars/")// 他注册的webjars的路径是类路径下的/META-INF/resources/webjars
+						.setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));// webjars也会做缓存处理
 			}
+			// 这里就是静态资源的处理了 staticPathPattern = /**，所以他的处理是对所有请求都会处理，如果能从静态资源目录拿到就去拿到
+			// 所以他是对你所有的请求都会处理这里，你访问个啥都会被转到这里，当然了请求高于他，请求要是和资源一样的路径，那先请求拿不到会去拿资源
 			String staticPathPattern = this.mvcProperties.getStaticPathPattern();
 			if (!registry.hasMappingForPattern(staticPathPattern)) {
 				customizeResourceHandlerRegistration(registry.addResourceHandler(staticPathPattern)
+						// 他读取的静态资源的目录"classpath:/META-INF/resources/",
+						//			"classpath:/resources/", "classpath:/static/", "classpath:/public/"
 						.addResourceLocations(getResourceLocations(this.resourceProperties.getStaticLocations()))
 						.setCachePeriod(getSeconds(cachePeriod)).setCacheControl(cacheControl));
 			}
@@ -378,6 +429,13 @@ public class WebMvcAutoConfiguration {
 
 		private ResourceLoader resourceLoader;
 
+		/**
+		 * 这里说一个机制，就是当一个配置类(被@Configuration标记的类)，只有一个全参构造的时候，这个构造器里面所有的参数都会从容器中获取
+		 * @param resourceProperties
+		 * @param mvcPropertiesProvider
+		 * @param mvcRegistrationsProvider
+		 * @param beanFactory
+		 */
 		public EnableWebMvcConfiguration(ResourceProperties resourceProperties,
 				ObjectProvider<WebMvcProperties> mvcPropertiesProvider,
 				ObjectProvider<WebMvcRegistrations> mvcRegistrationsProvider, ListableBeanFactory beanFactory) {
