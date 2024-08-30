@@ -45,6 +45,7 @@ import org.springframework.util.unit.DataSize;
  * @author Stephane Nicoll
  * @since 2.0.0
  */
+// 文件上传能支持的配置
 @ConfigurationProperties(prefix = "spring.servlet.multipart", ignoreUnknownFields = false)
 public class MultipartProperties {
 
@@ -59,12 +60,12 @@ public class MultipartProperties {
 	private String location;
 
 	/**
-	 * Max file size.
+	 * Max file size. 每次上传单个文件的大小限制
 	 */
 	private DataSize maxFileSize = DataSize.ofMegabytes(1);
 
 	/**
-	 * Max request size.
+	 * Max request size. 一次上传所有文件加起来的大小限制
 	 */
 	private DataSize maxRequestSize = DataSize.ofMegabytes(10);
 

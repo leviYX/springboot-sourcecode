@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Form</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .container {
+            max-width: 600px;
+            margin: auto;
+        }
+        form {
+            display: flex;
+            flex-direction: column;
+        }
+        label {
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input, textarea {
+            margin-bottom: 15px;
+            padding: 8px;
+            font-size: 16px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>Test Form</h1>
+    <form action="/user" method="get">
+        <input value="get提交" type="submit">
+    </form>
+    <form action="/user" method="post">
+        <input value="post提交" type="submit">
+    </form>
+    <form action="/user" method="POST">
+        <input value="put提交" type="submit">
+        <input name="cjb" type="hidden" value="PUT">
+    </form>
+    <form action="/user" method="POST">
+        <input value="delete提交" type="submit">
+        <input name="cjb" type="hidden" value="DELETE">
+    </form>
+</div>
+</body>
+</html>
